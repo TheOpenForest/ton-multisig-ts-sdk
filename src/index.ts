@@ -4,7 +4,7 @@ import { Params, Op, ORDER_MAX_SEQNO } from "./wrappers/Constants"
 import * as MultisigCode from "./compiled/Multisig.compiled.json";
 
 function deployMultisig(config: MultisigConfig) {
-    const code = Cell.fromBoc(MultisigCode.hex)[0]
+    const code = Cell.fromHex(MultisigCode.hex)[0]
     const data = multisigConfigToCell(config);
     const init: StateInit = { code, data };
     const stateInit = beginCell().store(storeStateInit(init)).endCell();
