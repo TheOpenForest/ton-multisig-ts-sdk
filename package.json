@@ -1,0 +1,37 @@
+{
+  "name": "ton-multisig-ts-sdk",
+  "version": "0.0.1",
+  "description": "TON Multisig contracts interaction sdk in Tyepscript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "TON",
+    "Multisig"
+  ],
+  "author": "Philip@TONX",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thewildanimal/ton-multisig-ts-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thewildanimal/ton-multisig-ts-sdk/issues"
+  },
+  "homepage": "https://github.com/thewildanimal/ton-multisig-ts-sdk#readme",
+  "dependencies": {
+    "@ton/ton": "^15.1.0",
+    "tsc": "^2.0.4",
+    "typescript": "^5.6.3"
+  }
+}
