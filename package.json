@@ -8,7 +8,7 @@
     "/dist"
   ],
   "scripts": {
-    "build": "tsx",
+    "build": "tsc",
     "clean": "rm -rf dist",
     "format": "prettier . --write",
     "lint": "eslint . --fix",
