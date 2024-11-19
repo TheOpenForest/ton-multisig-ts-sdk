@@ -50,10 +50,10 @@ const transaction = {
     validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
     messages: [
         {
-            address: multisigContractPayload.sendToAddress,
+            address: multisigContractPayload.sendToAddress.toString(),
             amount: toNano("0.002"),
-            stateInit: multisigContractPayload.stateInit,
-            payload: multisigContractPayload.payload
+            stateInit: multisigContractPayload.stateInit.toBoc().toString('base64'),
+            payload: multisigContractPayload.payload.toBoc().toString('base64')
         },
     ]
 }
@@ -95,11 +95,11 @@ const client = new TonClient({
 
 // step 2: fetch multisig config
 const multisigAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const { nextOrderSeqno, threshold, signers, proposers } = getMultisigConfig(
   client,
-  multisigAddress
+  multisigAddress,
 );
 const multisigConfig: MultisigConfig = {
   threshold,
@@ -111,7 +111,7 @@ const multisigConfig: MultisigConfig = {
 // step 3: create action (ton transfer)
 const action: Action = tonTransferAction(
   Address.parse("EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"),
-  toNano("0.002")
+  toNano("0.002"),
 );
 
 // step 4: create order params
@@ -127,7 +127,7 @@ const orderContractPayload = deployOrder(
   senderAddress,
   orderParams,
   multisigConfig,
-  [action]
+  [action],
 );
 
 // step 6: deploy multisig contract
@@ -139,9 +139,9 @@ const transaction = {
   validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
   messages: [
     {
-      address: orderContractPayload.sendToAddress,
+      address: orderContractPayload.sendToAddress.toString(),
       amount: toNano("0.02"),
-      payload: orderContractPayload.payload,
+      payload: orderContractPayload.payload.toBoc().toString('base64'),
     },
   ],
 };
@@ -153,7 +153,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
@@ -182,11 +182,11 @@ const client = new TonClient({
 
 // step 2: fetch multisig config
 const multisigAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const { nextOrderSeqno, threshold, signers, proposers } = getMultisigConfig(
   client,
-  multisigAddress
+  multisigAddress,
 );
 const multisigConfig: MultisigConfig = {
   threshold,
@@ -202,12 +202,12 @@ const action: Action = changeConfigAction(
     Address.parse("EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"),
   ],
   proposers,
-  threshold
+  threshold,
 );
 
 // step 4: create order params
 const orderParams: OrderParams = {
-  multisigAddress: multisigAddress,
+  multisigAddress: multisigAddress.toString(),
   orderSeqno: nextOrderSeqno,
   expirationDate: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // expires in 24 hours
 };
@@ -218,7 +218,7 @@ const orderContractPayload = deployOrder(
   senderAddress,
   orderParams,
   multisigConfig,
-  [action]
+  [action],
 );
 
 // step 6: deploy multisig contract
@@ -230,9 +230,9 @@ const transaction = {
   validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
   messages: [
     {
-      address: orderContractPayload.sendToAddress,
+      address: orderContractPayload.sendToAddress.toString(),
       amount: toNano("0.02"),
-      payload: orderContractPayload.payload,
+      payload: orderContractPayload.payload.toBoc().toString('base64'),
     },
   ],
 };
@@ -244,7 +244,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
@@ -260,7 +260,7 @@ import { Address, toNano, TonClient } from "@ton/ton";
 
 // step 1: get order config
 const orderAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const orderConfig = getOrderConfig(client, orderAddress);
 
@@ -277,9 +277,9 @@ const transaction = {
   validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
   messages: [
     {
-      address: orderAddress,
+      address: orderAddress.toString(),
       amount: toNano("0.002"),
-      payload: approvePayload.payload,
+      payload: approvePayload.payload.toBoc().toString('base64'),
     },
   ],
 };
@@ -291,7 +291,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
