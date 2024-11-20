@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "ESNext",
     "strict": true,
     "declaration": true,
     "esModuleInterop": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "removeComments": true,
-    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
     "noLib": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
