@@ -250,15 +250,19 @@ async function getOrderConfig(provider: TonClient, orderAddress: Address) {
 function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
   // const orders = msgBodySlice.loadRef();
   const ordersSlice = orders.beginParse();
-  const actions = ordersSlice.loadDict(
+  const actions = ordersSlice.loadDictDirect(
     Dictionary.Keys.Uint(Params.bitsize.actionIndex),
     Dictionary.Values.Cell(),
   );
 
   const actionsArray: ActionReadable[] = [];
 
-  for (const [, action] of actions) {
-    const actionSlice = action.beginParse();
+  for (const index of actions.keys()) {
+    const actionCell = actions.get(index);
+    if (!actionCell) {
+      continue;
+    }
+    const actionSlice = actionCell.beginParse();
 
     // check if action has enough bits to read opcode
     if (actionSlice.remainingBits > Params.bitsize.op) {
@@ -292,21 +296,20 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
           const body = message.body;
 
           if (
-            !body ||
-            body === Cell.EMPTY ||
             !to ||
-            typeof value !== "bigint" ||
-            body.beginParse().remainingBits < Params.bitsize.op
+            typeof value !== "bigint"
           ) {
             continue;
           }
 
           const bodySlice = body.beginParse();
-          const messageOpcode = bodySlice.loadUint(Params.bitsize.op);
 
-          if (messageOpcode === Op.common.comment) {
-            const comment =
-              bodySlice.remainingRefs > 0 ? bodySlice.loadStringTail() : "";
+          if (bodySlice.remainingBits === 0 || (bodySlice.remainingBits >= Params.bitsize.op && bodySlice.preloadUint(Params.bitsize.op) === Op.common.comment)) {
+            let comment = "";
+            if (bodySlice.remainingBits > 0) {
+              bodySlice.loadUint(Params.bitsize.op); // opcode
+              comment = bodySlice.loadStringTail();
+            }
             actionsArray.push({
               type: "SEND_TON",
               amount: value,
@@ -314,10 +317,13 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
               comment,
             });
           } else if (
-            messageOpcode === Op.jetton.JettonTransfer &&
+            body &&
+            body !== Cell.EMPTY &&
             bodySlice.remainingBits >
-              Params.bitsize.queryId + Params.bitsize.address
+            Params.bitsize.queryId + Params.bitsize.address &&
+            bodySlice.preloadUint(Params.bitsize.op) === Op.jetton.JettonTransfer
           ) {
+            bodySlice.loadUint(Params.bitsize.op) // opcode
             bodySlice.loadUint(Params.bitsize.queryId); // queryId
             const jettonAmount = bodySlice.loadCoins();
             const destReal = bodySlice.loadAddress();
