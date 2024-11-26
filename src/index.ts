@@ -9,18 +9,24 @@ import {
   SendMode,
   internal,
   toNano,
+  Dictionary,
+  loadMessageRelaxed,
 } from "@ton/ton";
 import {
-  Action,
-  MultisigConfig,
   multisigConfigToCell,
   cellToArray,
   Multisig,
+} from "./contract/wrappers/Multisig";
+import type {
+  MultisigConfig,
+  OrderParams,
   TransferRequest,
   UpdateRequest,
-} from "./wrappers/Multisig";
-import { Params, Op, ORDER_MAX_SEQNO } from "./wrappers/Constants";
-import * as MultisigCode from "./compiled/Multisig.compiled.json";
+  Action,
+  ActionReadable,
+} from "./interfaces/ton";
+import { Params, Op, ORDER_MAX_SEQNO } from "./contract/wrappers/Constants";
+import * as MultisigCode from "./contract/compiled/Multisig.compiled.json";
 
 function deployMultisig(config: MultisigConfig) {
   const code = Cell.fromHex(MultisigCode.hex);
@@ -101,11 +107,6 @@ function changeConfigAction(
   };
 }
 
-interface OrderParams {
-  multisigAddress: Address;
-  orderSeqno: bigint;
-  expirationDate: number;
-}
 function deployOrder(
   fromAddress: Address,
   params: OrderParams,
@@ -246,12 +247,101 @@ async function getOrderConfig(provider: TonClient, orderAddress: Address) {
   };
 }
 
+function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
+  // const orders = msgBodySlice.loadRef();
+  const ordersSlice = orders.beginParse();
+  const actions = ordersSlice.loadDict(
+    Dictionary.Keys.Uint(Params.bitsize.actionIndex),
+    Dictionary.Values.Cell(),
+  );
+
+  const actionsArray: ActionReadable[] = [];
+
+  for (const [, action] of actions) {
+    const actionSlice = action.beginParse();
+
+    // check if action has enough bits to read opcode
+    if (actionSlice.remainingBits > Params.bitsize.op) {
+      const actionOpcode = actionSlice.loadUint(Params.bitsize.op);
+
+      if (
+        // check if action is update config
+        actionOpcode == Op.actions.update_multisig_params &&
+        actionSlice.remainingBits >= Params.bitsize.signerIndex &&
+        actionSlice.remainingRefs >= 1
+      ) {
+        const threshold = actionSlice.loadUint(Params.bitsize.signerIndex);
+        const signers = cellToArray(actionSlice.loadRef());
+        const proposers = cellToArray(actionSlice.asCell());
+        actionsArray.push({
+          type: "UPDATE_CONFIG",
+          signers,
+          proposers,
+          threshold,
+        });
+      } else if (
+        actionOpcode == Op.actions.send_message &&
+        actionSlice.remainingBits >= Params.bitsize.sendMode &&
+        actionSlice.remainingRefs >= 1
+      ) {
+        actionSlice.loadUint(Params.bitsize.sendMode); // send mode
+        const message = loadMessageRelaxed(actionSlice.loadRef().beginParse());
+        if (message.info.type === "internal") {
+          const to = message.info.dest;
+          const value = message.info.value.coins;
+          const body = message.body;
+
+          if (
+            !body ||
+            body === Cell.EMPTY ||
+            !to ||
+            typeof value !== "bigint" ||
+            body.beginParse().remainingBits < Params.bitsize.op
+          ) {
+            continue;
+          }
+
+          const bodySlice = body.beginParse();
+          const messageOpcode = bodySlice.loadUint(Params.bitsize.op);
+
+          if (messageOpcode === Op.common.comment) {
+            const comment =
+              bodySlice.remainingRefs > 0 ? bodySlice.loadStringTail() : "";
+            actionsArray.push({
+              type: "SEND_TON",
+              amount: value,
+              recipient: to,
+              comment,
+            });
+          } else if (
+            messageOpcode === Op.jetton.JettonTransfer &&
+            bodySlice.remainingBits >
+              Params.bitsize.queryId + Params.bitsize.address
+          ) {
+            bodySlice.loadUint(Params.bitsize.queryId); // queryId
+            const jettonAmount = bodySlice.loadCoins();
+            const destReal = bodySlice.loadAddress();
+            actionsArray.push({
+              type: "SEND_JETTON",
+              amount: jettonAmount,
+              recipient: destReal,
+              jettonWallet: to,
+            });
+          }
+        } else {
+          // TODO: may be an external message out
+          continue;
+        }
+      } else {
+        // TODO: this is an unknown action type
+        continue;
+      }
+    }
+  }
+  return actionsArray;
+}
+
 export {
-  type MultisigConfig,
-  type OrderParams,
-  type TransferRequest,
-  type UpdateRequest,
-  type Action,
   deployMultisig,
   deployOrder,
   approveOrder,
@@ -261,4 +351,13 @@ export {
   tonTransferAction,
   jettonTransferAction,
   changeConfigAction,
+  parseActionViaOrdersCell,
+
+  // types
+  MultisigConfig,
+  OrderParams,
+  TransferRequest,
+  UpdateRequest,
+  Action,
+  ActionReadable,
 };
