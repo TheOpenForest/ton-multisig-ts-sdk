@@ -275,8 +275,14 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
         actionSlice.remainingRefs >= 1
       ) {
         const threshold = actionSlice.loadUint(Params.bitsize.signerIndex);
-        const signers = cellToArray(actionSlice.loadRef());
-        const proposers = cellToArray(actionSlice.asCell());
+        let signers: Address[] = [];
+        if(actionSlice.asCell().asSlice().remainingBits > Params.bitsize.address) {
+          signers = cellToArray(actionSlice.asCell());
+        }
+        let proposers: Address[] = [];
+        if(actionSlice.remainingBits > Params.bitsize.address) {
+          proposers = cellToArray(actionSlice.asCell());
+        }
         actionsArray.push({
           type: 'UPDATE_CONFIG',
           signers,
