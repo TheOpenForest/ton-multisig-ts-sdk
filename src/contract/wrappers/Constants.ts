@@ -38,6 +38,9 @@ export abstract class Op {
   static readonly nft = {
     NftTransfer: 0x5fcc3d14,
   };
+  static readonly common = {
+    comment: 0,
+  };
 }
 
 export abstract class Errors {
@@ -69,6 +72,8 @@ export abstract class Params {
     signerIndex: 8,
     actionIndex: 8,
     time: 48,
+    sendMode: 8,
+    address: 267,
   };
 }
 

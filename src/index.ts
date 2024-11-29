@@ -9,18 +9,24 @@ import {
   SendMode,
   internal,
   toNano,
-} from "@ton/ton";
+  Dictionary,
+  loadMessageRelaxed,
+} from '@ton/ton';
 import {
-  Action,
-  MultisigConfig,
   multisigConfigToCell,
   cellToArray,
   Multisig,
+} from './contract/wrappers/Multisig';
+import type {
+  MultisigConfig,
+  OrderParams,
   TransferRequest,
   UpdateRequest,
-} from "./wrappers/Multisig";
-import { Params, Op, ORDER_MAX_SEQNO } from "./wrappers/Constants";
-import * as MultisigCode from "./compiled/Multisig.compiled.json";
+  Action,
+  ActionReadable,
+} from './interfaces/ton';
+import { Params, Op, ORDER_MAX_SEQNO } from './contract/wrappers/Constants';
+import * as MultisigCode from './contract/compiled/Multisig.compiled.json';
 
 function deployMultisig(config: MultisigConfig) {
   const code = Cell.fromHex(MultisigCode.hex);
@@ -45,7 +51,7 @@ function tonTransferAction(
   comment?: string,
 ): TransferRequest {
   return {
-    type: "transfer",
+    type: 'transfer',
     sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
     message: internal({
       to: tonReceiver,
@@ -77,12 +83,12 @@ function jettonTransferAction(
 
   const msg = internal({
     to: jettonWalletAddress,
-    value: toNano("0.05"),
+    value: toNano('0.05'),
     body: body,
   });
 
   return {
-    type: "transfer",
+    type: 'transfer',
     sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
     message: msg,
   };
@@ -94,18 +100,13 @@ function changeConfigAction(
   threshold: number,
 ): UpdateRequest {
   return {
-    type: "update",
+    type: 'update',
     threshold,
     signers,
     proposers,
   };
 }
 
-interface OrderParams {
-  multisigAddress: Address;
-  orderSeqno: bigint;
-  expirationDate: number;
-}
 function deployOrder(
   fromAddress: Address,
   params: OrderParams,
@@ -126,7 +127,7 @@ function deployOrder(
   } else {
     addrIdx = multisigConfig.proposers.findIndex(addrCmp);
     if (addrIdx < 0) {
-      throw new Error("Sender is not a signer or proposer");
+      throw new Error('Sender is not a signer or proposer');
     }
   }
 
@@ -160,7 +161,7 @@ function approveOrder(
   const addrCmp = (x: Address) => x.equals(fromAddress);
   const addrIdx = signers.findIndex(addrCmp);
   if (addrIdx < 0) {
-    throw new Error("Sender is not a signer");
+    throw new Error('Sender is not a signer');
   }
 
   const body = beginCell()
@@ -180,7 +181,7 @@ async function getMultisigConfig(
 ) {
   const { stack } = await provider.runMethod(
     multisigAddress,
-    "get_multisig_data",
+    'get_multisig_data',
     [],
   );
   const nextOrderSeqno = stack.readBigNumber();
@@ -201,8 +202,8 @@ async function getOrderAddressBySeqno(
   }
   const { stack } = await provider.runMethod(
     multisigAddress,
-    "get_order_address",
-    [{ type: "int", value: bnOrderSeqno }],
+    'get_order_address',
+    [{ type: 'int', value: bnOrderSeqno }],
   );
   return stack.readAddress();
 }
@@ -210,7 +211,7 @@ async function getOrderAddressBySeqno(
 async function getOrderConfig(provider: TonClient, orderAddress: Address) {
   const { stack } = await provider.runMethod(
     orderAddress,
-    "get_order_data",
+    'get_order_data',
     [],
   );
   const multisig = stack.readAddress();
@@ -246,12 +247,109 @@ async function getOrderConfig(provider: TonClient, orderAddress: Address) {
   };
 }
 
+function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
+  // const orders = msgBodySlice.loadRef();
+  const ordersSlice = orders.beginParse();
+  const actions = ordersSlice.loadDictDirect(
+    Dictionary.Keys.Uint(Params.bitsize.actionIndex),
+    Dictionary.Values.Cell(),
+  );
+
+  const actionsArray: ActionReadable[] = [];
+
+  for (const index of actions.keys()) {
+    const actionCell = actions.get(index);
+    if (!actionCell) {
+      continue;
+    }
+    const actionSlice = actionCell.beginParse();
+
+    // check if action has enough bits to read opcode
+    if (actionSlice.remainingBits > Params.bitsize.op) {
+      const actionOpcode = actionSlice.loadUint(Params.bitsize.op);
+
+      if (
+        // check if action is update config
+        actionOpcode == Op.actions.update_multisig_params &&
+        actionSlice.remainingBits >= Params.bitsize.signerIndex &&
+        actionSlice.remainingRefs >= 1
+      ) {
+        const threshold = actionSlice.loadUint(Params.bitsize.signerIndex);
+        const signers = cellToArray(actionSlice.loadRef());
+        const proposers = cellToArray(actionSlice.asCell());
+        actionsArray.push({
+          type: 'UPDATE_CONFIG',
+          signers,
+          proposers,
+          threshold,
+        });
+      } else if (
+        actionOpcode == Op.actions.send_message &&
+        actionSlice.remainingBits >= Params.bitsize.sendMode &&
+        actionSlice.remainingRefs >= 1
+      ) {
+        actionSlice.loadUint(Params.bitsize.sendMode); // send mode
+        const message = loadMessageRelaxed(actionSlice.loadRef().beginParse());
+        if (message.info.type === 'internal') {
+          const to = message.info.dest;
+          const value = message.info.value.coins;
+          const body = message.body;
+
+          if (!to || typeof value !== 'bigint') {
+            continue;
+          }
+
+          const bodySlice = body.beginParse();
+
+          if (
+            bodySlice.remainingBits === 0 ||
+            (bodySlice.remainingBits >= Params.bitsize.op &&
+              bodySlice.preloadUint(Params.bitsize.op) === Op.common.comment)
+          ) {
+            let comment = '';
+            if (bodySlice.remainingBits > 0) {
+              bodySlice.loadUint(Params.bitsize.op); // opcode
+              comment = bodySlice.loadStringTail();
+            }
+            actionsArray.push({
+              type: 'SEND_TON',
+              amount: value,
+              recipient: to,
+              comment,
+            });
+          } else if (
+            body &&
+            body !== Cell.EMPTY &&
+            bodySlice.remainingBits >
+              Params.bitsize.queryId + Params.bitsize.address &&
+            bodySlice.preloadUint(Params.bitsize.op) ===
+              Op.jetton.JettonTransfer
+          ) {
+            bodySlice.loadUint(Params.bitsize.op); // opcode
+            bodySlice.loadUintBig(Params.bitsize.queryId); // queryId
+            const jettonAmount = bodySlice.loadCoins();
+            const destReal = bodySlice.loadAddress();
+            actionsArray.push({
+              type: 'SEND_JETTON',
+              amount: jettonAmount,
+              recipient: destReal,
+              jettonWallet: to,
+            });
+          }
+        } else {
+          // TODO: may be an external message out
+          continue;
+        }
+      } else {
+        // TODO: this is an unknown action type
+        continue;
+      }
+    }
+  }
+  return actionsArray;
+}
+
 export {
-  type MultisigConfig,
-  type OrderParams,
-  type TransferRequest,
-  type UpdateRequest,
-  type Action,
   deployMultisig,
   deployOrder,
   approveOrder,
@@ -261,4 +359,13 @@ export {
   tonTransferAction,
   jettonTransferAction,
   changeConfigAction,
+  parseActionViaOrdersCell,
+
+  // types
+  MultisigConfig,
+  OrderParams,
+  TransferRequest,
+  UpdateRequest,
+  Action,
+  ActionReadable,
 };

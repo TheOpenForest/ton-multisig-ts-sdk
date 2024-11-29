@@ -10,6 +10,7 @@ TON Multisig contracts interaction SDK in Tyepscript
 
 - [ ] Multisig V1
 - [x] Multisig V2
+- [ ] Multisig V2r2
 
 ## Installing
 
@@ -95,11 +96,11 @@ const client = new TonClient({
 
 // step 2: fetch multisig config
 const multisigAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const { nextOrderSeqno, threshold, signers, proposers } = getMultisigConfig(
   client,
-  multisigAddress
+  multisigAddress,
 );
 const multisigConfig: MultisigConfig = {
   threshold,
@@ -111,7 +112,7 @@ const multisigConfig: MultisigConfig = {
 // step 3: create action (ton transfer)
 const action: Action = tonTransferAction(
   Address.parse("EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"),
-  toNano("0.002")
+  toNano("0.002"),
 );
 
 // step 4: create order params
@@ -127,7 +128,7 @@ const orderContractPayload = deployOrder(
   senderAddress,
   orderParams,
   multisigConfig,
-  [action]
+  [action],
 );
 
 // step 6: deploy multisig contract
@@ -153,7 +154,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
@@ -182,11 +183,11 @@ const client = new TonClient({
 
 // step 2: fetch multisig config
 const multisigAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const { nextOrderSeqno, threshold, signers, proposers } = getMultisigConfig(
   client,
-  multisigAddress
+  multisigAddress,
 );
 const multisigConfig: MultisigConfig = {
   threshold,
@@ -197,18 +198,18 @@ const multisigConfig: MultisigConfig = {
 
 // step 3: create action (jetton transfer)
 const toAddress = Address.parse(
-  "EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"
+  "EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB",
 );
 const jettonAmount = BigInt(1000000000);
 const queryId = 1234;
 const jettonWalletAddress = Address.parse(
-  "EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aC"
+  "EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aC",
 ); // WARNING: jetton wallet is hard to get, you need to get it from jetton master contract or fetch it from json-rpc api
 const action: Action = jettonTransferAction(
   toAddress,
   jettonAmount,
   queryId,
-  jettonWalletAddress
+  jettonWalletAddress,
 );
 
 // step 4: create order params
@@ -224,7 +225,7 @@ const orderContractPayload = deployOrder(
   senderAddress,
   orderParams,
   multisigConfig,
-  [action]
+  [action],
 );
 
 // step 6: deploy multisig contract
@@ -250,7 +251,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
@@ -279,11 +280,11 @@ const client = new TonClient({
 
 // step 2: fetch multisig config
 const multisigAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const { nextOrderSeqno, threshold, signers, proposers } = getMultisigConfig(
   client,
-  multisigAddress
+  multisigAddress,
 );
 const multisigConfig: MultisigConfig = {
   threshold,
@@ -299,7 +300,7 @@ const action: Action = changeConfigAction(
     Address.parse("EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"),
   ],
   proposers,
-  threshold
+  threshold,
 );
 
 // step 4: create order params
@@ -315,7 +316,7 @@ const orderContractPayload = deployOrder(
   senderAddress,
   orderParams,
   multisigConfig,
-  [action]
+  [action],
 );
 
 // step 6: deploy multisig contract
@@ -341,7 +342,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
@@ -357,7 +358,7 @@ import { Address, toNano, TonClient } from "@ton/ton";
 
 // step 1: get order config
 const orderAddress = Address.parse(
-  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
 const orderConfig = getOrderConfig(client, orderAddress);
 
@@ -388,7 +389,7 @@ try {
 } catch (e) {
   if (e instanceof UserRejectedError) {
     alert(
-      "You rejected the transaction. Please confirm it to send to the blockchain"
+      "You rejected the transaction. Please confirm it to send to the blockchain",
     );
   } else {
     alert("Unknown error happened", e);
