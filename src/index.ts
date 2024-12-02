@@ -11,12 +11,12 @@ import {
   toNano,
   Dictionary,
   loadMessageRelaxed,
-} from '@ton/ton';
+} from "@ton/ton";
 import {
   multisigConfigToCell,
   cellToArray,
   Multisig,
-} from './contract/wrappers/Multisig';
+} from "./contract/wrappers/Multisig";
 import type {
   MultisigConfig,
   OrderParams,
@@ -24,9 +24,9 @@ import type {
   UpdateRequest,
   Action,
   ActionReadable,
-} from './interfaces/ton';
-import { Params, Op, ORDER_MAX_SEQNO } from './contract/wrappers/Constants';
-import * as MultisigCode from './contract/compiled/Multisig.compiled.json';
+} from "./interfaces/ton";
+import { Params, Op, ORDER_MAX_SEQNO } from "./contract/wrappers/Constants";
+import * as MultisigCode from "./contract/compiled/Multisig.compiled.json";
 
 function deployMultisig(config: MultisigConfig) {
   const code = Cell.fromHex(MultisigCode.hex);
@@ -51,7 +51,7 @@ function tonTransferAction(
   comment?: string,
 ): TransferRequest {
   return {
-    type: 'transfer',
+    type: "transfer",
     sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
     message: internal({
       to: tonReceiver,
@@ -83,12 +83,12 @@ function jettonTransferAction(
 
   const msg = internal({
     to: jettonWalletAddress,
-    value: toNano('0.05'),
+    value: toNano("0.05"),
     body: body,
   });
 
   return {
-    type: 'transfer',
+    type: "transfer",
     sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
     message: msg,
   };
@@ -100,7 +100,7 @@ function changeConfigAction(
   threshold: number,
 ): UpdateRequest {
   return {
-    type: 'update',
+    type: "update",
     threshold,
     signers,
     proposers,
@@ -127,7 +127,7 @@ function deployOrder(
   } else {
     addrIdx = multisigConfig.proposers.findIndex(addrCmp);
     if (addrIdx < 0) {
-      throw new Error('Sender is not a signer or proposer');
+      throw new Error("Sender is not a signer or proposer");
     }
   }
 
@@ -161,7 +161,7 @@ function approveOrder(
   const addrCmp = (x: Address) => x.equals(fromAddress);
   const addrIdx = signers.findIndex(addrCmp);
   if (addrIdx < 0) {
-    throw new Error('Sender is not a signer');
+    throw new Error("Sender is not a signer");
   }
 
   const body = beginCell()
@@ -181,7 +181,7 @@ async function getMultisigConfig(
 ) {
   const { stack } = await provider.runMethod(
     multisigAddress,
-    'get_multisig_data',
+    "get_multisig_data",
     [],
   );
   const nextOrderSeqno = stack.readBigNumber();
@@ -202,8 +202,8 @@ async function getOrderAddressBySeqno(
   }
   const { stack } = await provider.runMethod(
     multisigAddress,
-    'get_order_address',
-    [{ type: 'int', value: bnOrderSeqno }],
+    "get_order_address",
+    [{ type: "int", value: bnOrderSeqno }],
   );
   return stack.readAddress();
 }
@@ -211,7 +211,7 @@ async function getOrderAddressBySeqno(
 async function getOrderConfig(provider: TonClient, orderAddress: Address) {
   const { stack } = await provider.runMethod(
     orderAddress,
-    'get_order_data',
+    "get_order_data",
     [],
   );
   const multisig = stack.readAddress();
@@ -276,16 +276,16 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
       ) {
         const threshold = actionSlice.loadUint(Params.bitsize.signerIndex);
         let signers: Address[] = [];
-        const signersCell = actionSlice.loadRef()
-        if(signersCell.asSlice().remainingBits > 1) {
+        const signersCell = actionSlice.loadRef();
+        if (signersCell.asSlice().remainingBits > 1) {
           signers = cellToArray(signersCell);
         }
         let proposers: Address[] = [];
-        if(actionSlice.remainingBits > 1) {
+        if (actionSlice.remainingBits > 1) {
           proposers = cellToArray(actionSlice.asCell());
         }
         actionsArray.push({
-          type: 'UPDATE_CONFIG',
+          type: "UPDATE_CONFIG",
           signers,
           proposers,
           threshold,
@@ -297,12 +297,12 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
       ) {
         actionSlice.loadUint(Params.bitsize.sendMode); // send mode
         const message = loadMessageRelaxed(actionSlice.loadRef().beginParse());
-        if (message.info.type === 'internal') {
+        if (message.info.type === "internal") {
           const to = message.info.dest;
           const value = message.info.value.coins;
           const body = message.body;
 
-          if (!to || typeof value !== 'bigint') {
+          if (!to || typeof value !== "bigint") {
             continue;
           }
 
@@ -313,13 +313,13 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             (bodySlice.remainingBits >= Params.bitsize.op &&
               bodySlice.preloadUint(Params.bitsize.op) === Op.common.comment)
           ) {
-            let comment = '';
+            let comment = "";
             if (bodySlice.remainingBits > 0) {
               bodySlice.loadUint(Params.bitsize.op); // opcode
               comment = bodySlice.loadStringTail();
             }
             actionsArray.push({
-              type: 'SEND_TON',
+              type: "SEND_TON",
               amount: value,
               recipient: to,
               comment,
@@ -337,7 +337,7 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             const jettonAmount = bodySlice.loadCoins();
             const destReal = bodySlice.loadAddress();
             actionsArray.push({
-              type: 'SEND_JETTON',
+              type: "SEND_JETTON",
               amount: jettonAmount,
               recipient: destReal,
               jettonWallet: to,

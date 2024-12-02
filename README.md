@@ -23,60 +23,61 @@ npm install ton-multisig-ts-sdk
 The following examples assume the following ambient declarations:
 
 ```typescript
-declare const connector: import('@tonconnect/sdk').ITonConnect
-declare const UserRejectsError: typeof import('@tonconnect/sdk').UserRejectsError
+declare const connector: import("@tonconnect/sdk").ITonConnect;
+declare const UserRejectsError: typeof import("@tonconnect/sdk").UserRejectsError;
 ```
 
 ### Deploy Multisig V2
 
 ```typescript
-import { deployMultisig, type MultisigConfig } from 'ton-multisig-ts-sdk';
+import { deployMultisig, type MultisigConfig } from "ton-multisig-ts-sdk";
 import { Address, toNano } from "@ton/ton";
 
 // step 1: create multisig config
 const multisigConfig: MultisigConfig = {
-    threshold: 2,
-    signers: [
-      Address.parse("EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"),
-      Address.parse("EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"),
-      Address.parse("EQBCJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aC")
-    ],
-    proposers: [],
-    allowArbitrarySeqno: false,
-}
+  threshold: 2,
+  signers: [
+    Address.parse("EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA"),
+    Address.parse("EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB"),
+    Address.parse("EQBCJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aC"),
+  ],
+  proposers: [],
+  allowArbitrarySeqno: false,
+};
 
 // step 2: create multisig contract deploy payloads
 const multisigContractPayload = deployMultisig(multisigConfig);
 
-
 // step 3: deploy multisig contract
 if (!connector.connected) {
-    alert('Please connect wallet to send the transaction!');
+  alert("Please connect wallet to send the transaction!");
 }
 
 const transaction = {
-    validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
-    messages: [
-        {
-            address: multisigContractPayload.sendToAddress.toString(),
-            amount: toNano("0.002").toString(),
-            stateInit: multisigContractPayload.stateInit.toBoc().toString('base64'),
-            payload: multisigContractPayload.payload.toBoc().toString('base64')
-        },
-    ]
-}
+  validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
+  messages: [
+    {
+      address: multisigContractPayload.sendToAddress.toString(),
+      amount: toNano("0.002").toString(),
+      stateInit: multisigContractPayload.stateInit.toBoc().toString("base64"),
+      payload: multisigContractPayload.payload.toBoc().toString("base64"),
+    },
+  ],
+};
 
 try {
-    const result = await connector.sendTransaction(transaction);
+  const result = await connector.sendTransaction(transaction);
 
-    // TODO: verify the result here
-    void result
+  // TODO: verify the result here
+  void result;
 } catch (e) {
-    if (e instanceof UserRejectsError) {
-        alert('You rejected the transaction. Please confirm it to send to the blockchain');
-    } else {
-        alert('Unknown error happened: ' + e.toString());
-    }
+  if (e instanceof UserRejectsError) {
+    alert(
+      "You rejected the transaction. Please confirm it to send to the blockchain",
+    );
+  } else {
+    alert("Unknown error happened: " + e.toString());
+  }
 }
 ```
 
@@ -105,10 +106,8 @@ const client = new TonClient({
 const multisigAddress = Address.parse(
   "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
-const { nextOrderSeqno, threshold, signers, proposers } = await getMultisigConfig(
-  client,
-  multisigAddress,
-);
+const { nextOrderSeqno, threshold, signers, proposers } =
+  await getMultisigConfig(client, multisigAddress);
 const multisigConfig: MultisigConfig = {
   threshold: Number(threshold),
   signers,
@@ -158,7 +157,7 @@ try {
   const result = await connector.sendTransaction(transaction);
 
   // TODO: verify the result here
-  void result
+  void result;
 } catch (e) {
   if (e instanceof UserRejectsError) {
     alert(
@@ -193,10 +192,8 @@ const client = new TonClient({
 const multisigAddress = Address.parse(
   "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
-const { nextOrderSeqno, threshold, signers, proposers } = await getMultisigConfig(
-  client,
-  multisigAddress,
-);
+const { nextOrderSeqno, threshold, signers, proposers } =
+  await getMultisigConfig(client, multisigAddress);
 const multisigConfig: MultisigConfig = {
   threshold: Number(threshold),
   signers,
@@ -256,7 +253,7 @@ try {
   const result = await connector.sendTransaction(transaction);
 
   // TODO: verify the result here
-  void result
+  void result;
 } catch (e) {
   if (e instanceof UserRejectsError) {
     alert(
@@ -291,10 +288,8 @@ const client = new TonClient({
 const multisigAddress = Address.parse(
   "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
 );
-const { nextOrderSeqno, threshold, signers, proposers } = await getMultisigConfig(
-  client,
-  multisigAddress,
-);
+const { nextOrderSeqno, threshold, signers, proposers } =
+  await getMultisigConfig(client, multisigAddress);
 const multisigConfig: MultisigConfig = {
   threshold: Number(threshold),
   signers,
@@ -348,7 +343,7 @@ try {
   const result = await connector.sendTransaction(transaction);
 
   // TODO: verify the result here
-  void result
+  void result;
 } catch (e) {
   if (e instanceof UserRejectsError) {
     alert(
@@ -402,7 +397,7 @@ try {
   const result = await connector.sendTransaction(transaction);
 
   // TODO: verify the result here
-  void result
+  void result;
 } catch (e) {
   if (e instanceof UserRejectsError) {
     alert(
