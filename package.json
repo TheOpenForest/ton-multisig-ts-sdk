@@ -13,7 +13,7 @@
     "clean": "rm -rf dist",
     "format": "prettier .",
     "format:fix": "prettier . --write",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern \"**/*.js\"",
     "lint:fix": "eslint . --fix",
     "test": "jest"
   },
