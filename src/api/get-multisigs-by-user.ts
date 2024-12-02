@@ -17,7 +17,7 @@ export default async function getMultisigsByUser(
       {},
       process.env.TONAPI_API_KEY,
     );
-    if (!response.multisigs) {
+    if (!response["multisigs"]) {
       return {
         success: true,
         data: {
@@ -28,7 +28,7 @@ export default async function getMultisigsByUser(
     }
 
     const items: UserMultisigInfo[] = [];
-    for (const multisig of response.multisigs) {
+    for (const multisig of response["multisigs"]) {
       const item: UserMultisigInfo = {
         address: multisig.address,
         version: MultisigContractVersion.MULTISIG_V2,
