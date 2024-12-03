@@ -210,6 +210,7 @@ const action: Action = jettonTransferAction(
   jettonAmount,
   queryId,
   jettonWalletAddress,
+  multisigAddress, // IMPORTANT: excess ton will be sent back to multisig
 );
 
 // step 4: create order params

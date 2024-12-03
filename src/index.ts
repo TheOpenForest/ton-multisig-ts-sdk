@@ -92,7 +92,7 @@ function jettonTransferAction(
   jettonAmount: bigint,
   queryId: number,
   jettonWalletAddress: Address,
-  responseAddress: Address = toAddress,
+  responseAddress: Address,
 ): TransferRequest {
   const body = beginCell()
     .storeUint(Op.jetton.JettonTransfer, 32) // jetton transfer op code
