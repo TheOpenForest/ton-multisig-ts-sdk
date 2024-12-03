@@ -15,7 +15,7 @@
     "format:fix": "prettier . --write",
     "lint": "eslint . --ignore-pattern \"**/*.js\"",
     "lint:fix": "eslint . --fix",
-    "test": "jest"
+    "test": "jest --maxWorkers=1"
   },
   "engines": {
     "node": ">=20"

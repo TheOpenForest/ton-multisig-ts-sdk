@@ -136,8 +136,8 @@ describe("ton blockchain", () => {
 
             // value check
             expect(multisigConfigRaw['allowArbitrarySeqno']).toBeUndefined()
-            expect(multisigConfigRaw.nextOrderSeqno).toBe(0n)
-            expect(multisigConfigRaw.threshold).toBe(Number(multisigConfig.threshold))
+            expect(multisigConfigRaw.nextOrderSeqno).toBe(1n)
+            expect(multisigConfigRaw.threshold).toBe(BigInt(multisigConfig.threshold))
             expect(multisigConfigRaw.signers).toHaveLength(multisigConfig.signers.length)
             expect(multisigConfigRaw.proposers).toHaveLength(multisigConfig.proposers.length)
             expect(multisigConfigRaw.signers.toString()).toEqual(
