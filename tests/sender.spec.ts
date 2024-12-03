@@ -3,17 +3,13 @@ import {
   BlockchainSnapshot,
   SandboxContract,
   TreasuryContract,
-  SendMessageResult,
 } from "@ton/sandbox";
 import {
-  Address,
   beginCell,
   Cell,
   Dictionary,
   loadStateInit,
   toNano,
-  TupleReader,
-  TupleItem,
 } from "@ton/core";
 import {
   Action,
@@ -27,86 +23,8 @@ import {
   getOrderConfig,
   getOrderAddressBySeqno,
 } from "../src/index";
-import { TonClient } from "@ton/ton";
 import * as OrderCode from "../src/contract/compiled/Order.compiled.json";
-import { Op, Params } from "../src/contract/wrappers/Constants";
-
-class TestTonClient extends TonClient {
-  blockchain: Blockchain;
-
-  constructor(blockchain: Blockchain) {
-    super({ endpoint: "" });
-    this.blockchain = blockchain;
-
-    this.runMethod = async (
-      address: Address,
-      method: string,
-      args: TupleItem[],
-    ) => {
-      const result = await this.blockchain.runGetMethod(address, method, args);
-      return {
-        gas_used: Number(result.gasUsed),
-        stack: new TupleReader(result.stack),
-      };
-    };
-  }
-}
-
-class ProcessExpectSuccess {
-  static deployMultisig(
-    transactions: SendMessageResult & {
-      result: void;
-    },
-  ) {
-    expect(transactions.transactions.length).toBe(2);
-    expect(transactions.transactions[0].outMessagesCount).toBe(1);
-    expect(transactions.transactions[1].outMessagesCount).toBe(0);
-    expect(transactions.transactions[1].oldStatus).toBe("uninitialized");
-    expect(transactions.transactions[1].endStatus).toBe("active");
-  }
-
-  static deployOrder(
-    transactions: SendMessageResult & {
-      result: void;
-    },
-  ) {
-    expect(transactions.transactions.length).toBe(3);
-    expect(transactions.transactions[0].oldStatus).toBe("active");
-    expect(transactions.transactions[0].endStatus).toBe("active");
-    expect(transactions.transactions[0].outMessagesCount).toBe(1);
-    expect(transactions.transactions[1].oldStatus).toBe("active");
-    expect(transactions.transactions[1].endStatus).toBe("active");
-    expect(transactions.transactions[1].outMessagesCount).toBe(1);
-    expect(transactions.transactions[2].oldStatus).toBe("uninitialized");
-    expect(transactions.transactions[2].endStatus).toBe("active");
-    expect(transactions.transactions[2].outMessagesCount).toBe(0);
-  }
-
-  static approveOrderNoExecute(
-    transactions: SendMessageResult & {
-      result: void;
-    },
-  ) {
-    expect(transactions.transactions.length).toBe(3);
-    expect(transactions.transactions[0].oldStatus).toBe("active");
-    expect(transactions.transactions[0].endStatus).toBe("active");
-    expect(transactions.transactions[0].outMessagesCount).toBe(1);
-    expect(transactions.transactions[1].oldStatus).toBe("active");
-    expect(transactions.transactions[1].endStatus).toBe("active");
-    expect(transactions.transactions[1].outMessagesCount).toBe(1);
-    expect(transactions.transactions[2].oldStatus).toBe("active");
-    expect(transactions.transactions[2].endStatus).toBe("active");
-    expect(transactions.transactions[2].outMessagesCount).toBe(0);
-    expect(transactions.transactions[2].inMessage?.info.dest?.toString()).toBe(
-      transactions.transactions[0].inMessage?.info.dest?.toString(),
-    );
-    expect(
-      transactions.transactions[2].inMessage?.body
-        .beginParse()
-        .preloadUint(Params.bitsize.op),
-    ).toBe(Op.order.approved);
-  }
-}
+import { TestTonClient, ProcessExpectSuccess } from "./utils"
 
 describe("ton blockchain", () => {
   let blockchain: Blockchain;
@@ -122,15 +40,15 @@ describe("ton blockchain", () => {
 
     const orderCodeRaw = Cell.fromHex(OrderCode.hex);
     const orderHash = orderCodeRaw.hash();
-    const _libs = Dictionary.empty(
+    const libsDict = Dictionary.empty(
       Dictionary.Keys.BigUint(256),
       Dictionary.Values.Cell(),
     );
-    _libs.set(BigInt(`0x${orderHash.toString("hex")}`), orderCodeRaw);
-    const libs = beginCell().storeDictDirect(_libs).endCell();
-    blockchain.libs = libs;
-    // const  libPrep = beginCell().storeUint(2, 8).storeBuffer(orderHash).endCell();
-    // const orderCode = new Cell({ exotic: true, bits: libPrep.bits, refs: libPrep.refs });
+    libsDict.set(BigInt(`0x${orderHash.toString("hex")}`), orderCodeRaw);
+    const libsCell = beginCell().storeDictDirect(libsDict).endCell();
+    blockchain.libs = libsCell;
+    // const libHashed = beginCell().storeUint(2, 8).storeBuffer(orderHash).endCell();
+    // const orderCode = new Cell({ exotic: true, bits: libHashed.bits, refs: libHashed.refs });
 
     deployer = await blockchain.treasury("deployer");
     signers = await blockchain.createWallets(5, {
