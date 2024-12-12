@@ -287,6 +287,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
   for (const index of actions.keys()) {
     const actionCell = actions.get(index);
     if (!actionCell) {
+      actionsArray.push({
+        type: "UNKNOWN",
+      });
       continue;
     }
     const actionSlice = actionCell.beginParse();
@@ -330,6 +333,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
           const body = message.body;
 
           if (!to || typeof value !== "bigint") {
+            actionsArray.push({
+              type: "UNKNOWN",
+            });
             continue;
           }
 
@@ -369,15 +375,32 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
               recipient: destReal,
               jettonWallet: to,
             });
+          } else {
+            actionsArray.push({
+              type: "UNKNOWN",
+            });
+            continue;
           }
         } else {
           // TODO: may be an external message out
+          actionsArray.push({
+            type: "UNKNOWN",
+          });
           continue;
         }
       } else {
         // TODO: this is an unknown action type
+        actionsArray.push({
+          type: "UNKNOWN",
+        });
         continue;
       }
+    } else {
+      // TODO: this is an broken action
+      actionsArray.push({
+        type: "UNKNOWN",
+      });
+      continue;
     }
   }
   return actionsArray;
