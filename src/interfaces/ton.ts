@@ -39,10 +39,15 @@ interface SendJettonActionReadable {
   jettonWallet: Address;
 }
 
+interface UnknownActionReadable {
+  type: "UNKNOWN";
+}
+
 type ActionReadable =
   | UpdateConfigActionReadable
   | SendTonActionReadable
-  | SendJettonActionReadable;
+  | SendJettonActionReadable
+  | UnknownActionReadable;
 
 export type {
   MultisigConfig,
