@@ -261,6 +261,101 @@ try {
 }
 ```
 
+#### jetton transfer with comment
+
+```typescript
+import {
+  deployOrder,
+  getMultisigConfig,
+  jettonTransferAction,
+  commentToCell,
+  type MultisigConfig,
+  type OrderParams,
+  type Action,
+  type ContractTransferData,
+} from "ton-multisig-ts-sdk";
+import { Address, toNano, TonClient } from "@ton/ton";
+
+// step 1: initialize tonclient
+const client = new TonClient({
+  endpoint: "https://testnet.toncenter.com/api/v2/jsonRPC",
+  apiKey: "your-api-key", // Optional, but note that without api-key you need to send requests once per second, and with 0.25 seconds
+});
+
+// step 2: fetch multisig config
+const multisigAddress = Address.parse(
+  "EQBAJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aA",
+);
+const multisigConfigRaw = await getMultisigConfig(client, multisigAddress);
+const multisigConfig: MultisigConfig = multisigConfigRaw.toConfig();
+
+// step 3: create action (jetton transfer)
+const toAddress = Address.parse(
+  "EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aB",
+);
+const jettonAmount = BigInt(1000000000);
+const queryId = 1234;
+const jettonWalletAddress = Address.parse(
+  "EQBBJBB3HagsujBqVfqeDUPJ0kXjgTPLWPFFffuNXNiJL0aC",
+); // WARNING: jetton wallet is hard to get, you need to get it from jetton master contract or fetch it from json-rpc api
+const action: Action = jettonTransferAction(
+  toAddress,
+  jettonAmount,
+  queryId,
+  jettonWalletAddress,
+  multisigAddress, // IMPORTANT: excess ton will be sent back to multisig
+  toNano("0.01").toString(), // need some ton to forward the notification message
+  commentToCell("Hello, world!"),
+);
+
+// step 4: create order params
+const orderParams: OrderParams = {
+  multisigAddress: multisigAddress,
+  orderSeqno: multisigConfigRaw.nextOrderSeqno,
+  expirationDate: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // expires in 24 hours
+};
+
+// step 5: create multisig contract deploy payloads
+const senderAddress = Address.parse(connector.wallet!.account.address);
+const orderContractPayload: ContractTransferData = deployOrder(
+  senderAddress,
+  orderParams,
+  multisigConfig,
+  [action],
+);
+
+// step 6: deploy multisig contract
+if (!connector.connected) {
+  alert("Please connect wallet to send the transaction!");
+}
+
+const transaction = {
+  validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
+  messages: [
+    {
+      address: orderContractPayload.sendToAddress.toString(),
+      amount: toNano("0.02").toString(),
+      payload: orderContractPayload.payload.toBoc().toString("base64"),
+    },
+  ],
+};
+
+try {
+  const result = await connector.sendTransaction(transaction);
+
+  // TODO: verify the result here
+  void result;
+} catch (e) {
+  if (e instanceof UserRejectsError) {
+    alert(
+      "You rejected the transaction. Please confirm it to send to the blockchain",
+    );
+  } else {
+    alert("Unknown error happened: " + e.toString());
+  }
+}
+```
+
 #### change config
 
 ```typescript
