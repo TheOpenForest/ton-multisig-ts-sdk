@@ -107,7 +107,7 @@ function jettonTransferAction(
   if (forwardPayload === null) {
     body = body.storeUint(0, 1);
   } else {
-    body = body.storeUint(1, 1).storeMaybeRef(forwardPayload); // forward_payload:(Maybe Cell ^Cell)
+    body = body.storeUint(1, 1).storeRef(forwardPayload); // forward_payload:(Maybe Cell ^Cell)
   }
 
   const msg = internal({
