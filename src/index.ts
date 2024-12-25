@@ -93,6 +93,8 @@ function jettonTransferAction(
   queryId: number,
   jettonWalletAddress: Address,
   responseAddress: Address,
+  forwardTonAmount: bigint = 1n, // by default, we send 1 nano ton to the response address
+  forwardPayload: Cell | null = null, // by default, we don't forward any payload
 ): TransferRequest {
   const body = beginCell()
     .storeUint(Op.jetton.JettonTransfer, 32) // jetton transfer op code
@@ -101,8 +103,8 @@ function jettonTransferAction(
     .storeAddress(toAddress) // destination:MsgAddress
     .storeAddress(responseAddress) // response_destination:MsgAddress
     .storeUint(0, 1) // custom_payload:(Maybe ^Cell)
-    .storeCoins(1n) // forward_ton_amount:(VarUInteger 16) - if >0, will send notification message
-    .storeUint(0, 1) // forward_payload:(Either Cell ^Cell)
+    .storeCoins(forwardTonAmount) // forward_ton_amount:(VarUInteger 16) - if > 0, will send notification message
+    .storeMaybeRef(forwardPayload) // forward_payload:(Maybe Cell ^Cell)
     .endCell();
 
   const msg = internal({
@@ -361,9 +363,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             body &&
             body !== Cell.EMPTY &&
             bodySlice.remainingBits >
-              Params.bitsize.queryId + Params.bitsize.address &&
+            Params.bitsize.queryId + Params.bitsize.address &&
             bodySlice.preloadUint(Params.bitsize.op) ===
-              Op.jetton.JettonTransfer
+            Op.jetton.JettonTransfer
           ) {
             bodySlice.loadUint(Params.bitsize.op); // opcode
             bodySlice.loadUintBig(Params.bitsize.queryId); // queryId
@@ -406,6 +408,16 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
   return actionsArray;
 }
 
+function commentToCell(text: string): Cell {
+  return beginCell().storeUint(0, 32).storeStringTail(text).endCell();
+}
+
+function cellToComment(cell: Cell): string {
+  const slice = cell.beginParse();
+  slice.loadUint(32); // opcode
+  return slice.loadStringTail();
+}
+
 export {
   deployMultisig,
   deployOrder,
@@ -417,6 +429,8 @@ export {
   jettonTransferAction,
   changeConfigAction,
   parseActionViaOrdersCell,
+  commentToCell,
+  cellToComment,
 
   // types
   MultisigConfig,
