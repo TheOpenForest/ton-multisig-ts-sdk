@@ -96,21 +96,24 @@ function jettonTransferAction(
   forwardTonAmount: bigint = 1n, // by default, we send 1 nano ton to the response address
   forwardPayload: Cell | null = null, // by default, we don't forward any payload
 ): TransferRequest {
-  const body = beginCell()
+  let body = beginCell()
     .storeUint(Op.jetton.JettonTransfer, 32) // jetton transfer op code
     .storeUint(queryId, 64) // query_id:uint64
     .storeCoins(jettonAmount) // amount:(VarUInteger 16) -  Jetton amount for transfer (decimals = 6 - USDT, 9 - default). Function toNano use decimals = 9 (remember it)
     .storeAddress(toAddress) // destination:MsgAddress
     .storeAddress(responseAddress) // response_destination:MsgAddress
     .storeUint(0, 1) // custom_payload:(Maybe ^Cell)
-    .storeCoins(forwardTonAmount) // forward_ton_amount:(VarUInteger 16) - if > 0, will send notification message
-    .storeMaybeRef(forwardPayload) // forward_payload:(Maybe Cell ^Cell)
-    .endCell();
+    .storeCoins(forwardTonAmount); // forward_ton_amount:(VarUInteger 16) - if > 0, will send notification message
+  if (forwardPayload === null) {
+    body = body.storeUint(0, 1);
+  } else {
+    body = body.storeUint(1, 1).storeMaybeRef(forwardPayload); // forward_payload:(Maybe Cell ^Cell)
+  }
 
   const msg = internal({
     to: jettonWalletAddress,
     value: toNano("0.05"),
-    body: body,
+    body: body.endCell(),
   });
 
   return {
@@ -363,9 +366,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             body &&
             body !== Cell.EMPTY &&
             bodySlice.remainingBits >
-            Params.bitsize.queryId + Params.bitsize.address &&
+              Params.bitsize.queryId + Params.bitsize.address &&
             bodySlice.preloadUint(Params.bitsize.op) ===
-            Op.jetton.JettonTransfer
+              Op.jetton.JettonTransfer
           ) {
             bodySlice.loadUint(Params.bitsize.op); // opcode
             bodySlice.loadUintBig(Params.bitsize.queryId); // queryId
