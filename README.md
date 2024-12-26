@@ -64,7 +64,7 @@ const transaction = {
     {
       address: multisigContractPayload.sendToAddress.toString(),
       amount: toNano("0.002").toString(),
-      stateInit: multisigContractPayload.stateInit.toBoc().toString("base64"),
+      stateInit: multisigContractPayload.stateInit?.toBoc().toString("base64"),
       payload: multisigContractPayload.payload.toBoc().toString("base64"),
     },
   ],
