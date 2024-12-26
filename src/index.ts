@@ -87,6 +87,15 @@ function tonTransferAction(
   };
 }
 
+function estimateJettonTransferFee(forwardTonAmount: bigint): bigint {
+  // condition: msg_value > forward_ton_amount + 2 * fwd_fee + 2 * gas_consumption + min_tons_for_storage
+  const fwdFee = 3_000_000n
+  const gasConsumption = 15_000_000n
+  const minTonsForStorage = 10_000_000n
+
+  return forwardTonAmount + 2n * fwdFee + 2n * gasConsumption + minTonsForStorage
+}
+
 function jettonTransferAction(
   toAddress: Address,
   jettonAmount: bigint,
@@ -102,17 +111,17 @@ function jettonTransferAction(
     .storeCoins(jettonAmount) // amount:(VarUInteger 16) -  Jetton amount for transfer (decimals = 6 - USDT, 9 - default). Function toNano use decimals = 9 (remember it)
     .storeAddress(toAddress) // destination:MsgAddress
     .storeAddress(responseAddress) // response_destination:MsgAddress
-    .storeUint(0, 1) // custom_payload:(Maybe ^Cell)
+    .storeBit(false) // custom_payload:(Maybe ^Cell)
     .storeCoins(forwardTonAmount); // forward_ton_amount:(VarUInteger 16) - if > 0, will send notification message
   if (forwardPayload === null) {
-    body = body.storeUint(0, 1);
+    body = body.storeBit(false);
   } else {
-    body = body.storeUint(1, 1).storeRef(forwardPayload); // forward_payload:(Maybe Cell ^Cell)
+    body = body.storeBit(true).storeRef(forwardPayload); // forward_payload:(Either Cell ^Cell)
   }
 
   const msg = internal({
     to: jettonWalletAddress,
-    value: toNano("0.05"),
+    value: estimateJettonTransferFee(forwardTonAmount),
     body: body.endCell(),
   });
 
@@ -366,9 +375,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             body &&
             body !== Cell.EMPTY &&
             bodySlice.remainingBits >
-              Params.bitsize.queryId + Params.bitsize.address &&
+            Params.bitsize.queryId + Params.bitsize.address &&
             bodySlice.preloadUint(Params.bitsize.op) ===
-              Op.jetton.JettonTransfer
+            Op.jetton.JettonTransfer
           ) {
             bodySlice.loadUint(Params.bitsize.op); // opcode
             bodySlice.loadUintBig(Params.bitsize.queryId); // queryId
@@ -434,6 +443,7 @@ export {
   parseActionViaOrdersCell,
   commentToCell,
   cellToComment,
+  estimateJettonTransferFee,
 
   // types
   MultisigConfig,
