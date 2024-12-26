@@ -8,7 +8,6 @@ import {
   TonClient,
   SendMode,
   internal,
-  toNano,
   Dictionary,
   loadMessageRelaxed,
 } from "@ton/ton";
@@ -89,11 +88,13 @@ function tonTransferAction(
 
 function estimateJettonTransferFee(forwardTonAmount: bigint): bigint {
   // condition: msg_value > forward_ton_amount + 2 * fwd_fee + 2 * gas_consumption + min_tons_for_storage
-  const fwdFee = 3_000_000n
-  const gasConsumption = 15_000_000n
-  const minTonsForStorage = 10_000_000n
+  const fwdFee = 3_000_000n;
+  const gasConsumption = 15_000_000n;
+  const minTonsForStorage = 10_000_000n;
 
-  return forwardTonAmount + 2n * fwdFee + 2n * gasConsumption + minTonsForStorage
+  return (
+    forwardTonAmount + 2n * fwdFee + 2n * gasConsumption + minTonsForStorage
+  );
 }
 
 function jettonTransferAction(
@@ -375,9 +376,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             body &&
             body !== Cell.EMPTY &&
             bodySlice.remainingBits >
-            Params.bitsize.queryId + Params.bitsize.address &&
+              Params.bitsize.queryId + Params.bitsize.address &&
             bodySlice.preloadUint(Params.bitsize.op) ===
-            Op.jetton.JettonTransfer
+              Op.jetton.JettonTransfer
           ) {
             bodySlice.loadUint(Params.bitsize.op); // opcode
             bodySlice.loadUintBig(Params.bitsize.queryId); // queryId
