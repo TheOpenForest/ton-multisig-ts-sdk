@@ -10,6 +10,7 @@ import {
   internal,
   Dictionary,
   loadMessageRelaxed,
+  toNano,
 } from "@ton/ton";
 import {
   multisigConfigToCell,
@@ -122,7 +123,7 @@ function jettonTransferAction(
 
   const msg = internal({
     to: jettonWalletAddress,
-    value: estimateJettonTransferFee(forwardTonAmount),
+    value: toNano("0.65"), // TODO: should use `estimateJettonTransferFee(forwardTonAmount)`,
     body: body.endCell(),
   });
 
