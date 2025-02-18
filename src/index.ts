@@ -377,9 +377,9 @@ function parseActionViaOrdersCell(orders: Cell): ActionReadable[] {
             body &&
             body !== Cell.EMPTY &&
             bodySlice.remainingBits >
-              Params.bitsize.queryId + Params.bitsize.address &&
+            Params.bitsize.op + 4 + Params.bitsize.queryId + Params.bitsize.address && // 4 for coins
             bodySlice.preloadUint(Params.bitsize.op) ===
-              Op.jetton.JettonTransfer
+            Op.jetton.JettonTransfer
           ) {
             bodySlice.loadUint(Params.bitsize.op); // opcode
             bodySlice.loadUintBig(Params.bitsize.queryId); // queryId
